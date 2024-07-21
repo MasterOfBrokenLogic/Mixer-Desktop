@@ -1,59 +1,53 @@
-const setupEvents = require('./installers/setupEvents')
- if (setupEvents.handleSquirrelEvent()) {
-    return;
- }
-const electron = require('electron')
-const MixerDesktop = electron.app
-const BrowserWindow = electron.BrowserWindow
-const path = require('path')
-const url = require('url')
-
-let mainWindow
-
-function createWindow () {
-  mainWindow = new BrowserWindow({width: 1280, height: 720, titleBarStyle: 'hidden', icon:'./icons/win/icon-app.ico', backgroundColor: '#141828', webPreferences: {
-      nodeIntegration: false,
-      preload: '',
-      nativeWindowOpen: true,
-    }})
-
-  // Child window open event handler
-  mainWindow.webContents.on('new-window', (event, url, frameName, disposition, options, additionalFeatures) => {
-    event.preventDefault()
-    Object.assign(options, {
-      parent: mainWindow
-    })
-    event.newGuest = new BrowserWindow(options)
-    event.newGuest.setMenu(null)
-  })
-    
-  mainWindow.loadURL('https://mixer.com/users/login')
-  mainWindow.setMenu(null)
-    
-  //mainWindow.webContents.openDevTools()
-    
-  mainWindow.on('closed', function () {
-    mainWindow = null
-  })
+const setupEvents = require('./installers/setupEvents');
+if (setupEvents.handleSquirrelEvent()) {
+  return;
 }
 
-MixerDesktop.on('ready', createWindow)
+const { app, BrowserWindow } = require('electron');
+const path = require('path');
 
-MixerDesktop.on('window-all-closed', function () {
+let mainWindow;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 720,
+    titleBarStyle: 'hidden',
+    icon: path.join(__dirname, 'icons/win/icon-app.ico'),
+    backgroundColor: '#141828',
+    webPreferences: {
+      nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.js'), // Update preload path if needed
+      nativeWindowOpen: true,
+    }
+  });
+
+  mainWindow.webContents.on('new-window', (event, url, frameName, disposition, options) => {
+    event.preventDefault();
+    Object.assign(options, { parent: mainWindow });
+    const newWindow = new BrowserWindow(options);
+    newWindow.setMenu(null);
+    event.newGuest = newWindow;
+  });
+
+  mainWindow.loadURL('https://mixer.com/users/login');
+  mainWindow.setMenu(null);
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+app.on('ready', createWindow);
+
+app.on('window-all-closed', () => {
   if (process.platform !== 'win32') {
-    MixerDesktop.quit()
+    app.quit();
   }
-})
+});
 
-MixerDesktop.on('activate', function () {
+app.on('activate', () => {
   if (mainWindow === null) {
-    createWindow()
+    createWindow();
   }
-})
-
-MixerDesktop.on('closed', function () {
-    mainWindow = null
-    MixerDesktop.quit()
-    return
-    quit ()
-})
+});
